@@ -10,13 +10,16 @@ const Contact = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const res = await fetch("http://localhost:5000/api/contact", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
+    const res = await fetch(
+      "https://event-management-and-selling.onrender.com/api/contact",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(form),
       },
-      body: JSON.stringify(form),
-    });
+    );
 
     if (res.ok) {
       alert("Message sent successfully ✅");

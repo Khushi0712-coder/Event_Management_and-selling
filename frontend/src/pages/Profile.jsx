@@ -18,7 +18,7 @@ const Profile = () => {
       try {
         /* PROFILE */
         const profileRes = await fetch(
-          "http://localhost:5000/api/users/profile",
+          "https://event-management-and-selling.onrender.com/api/users/profile",
           {
             headers: { Authorization: `Bearer ${token}` },
           },
@@ -32,7 +32,7 @@ const Profile = () => {
 
         /* BOOKINGS */
         const bookingRes = await fetch(
-          "http://localhost:5000/api/bookings/my",
+          "https://event-management-and-selling.onrender.com/api/bookings/my",
           {
             headers: { Authorization: `Bearer ${token}` },
           },
@@ -42,7 +42,7 @@ const Profile = () => {
 
         /* SELL TICKETS */
         const sellRes = await fetch(
-          "http://localhost:5000/api/sell-ticket/my",
+          "https://event-management-and-selling.onrender.com/api/sell-ticket/my",
           {
             headers: { Authorization: `Bearer ${token}` },
           },
@@ -61,14 +61,17 @@ const Profile = () => {
 
   const updateProfile = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/users/profile", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+      const res = await fetch(
+        "https://event-management-and-selling.onrender.com/api/users/profile",
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ name, email }),
         },
-        body: JSON.stringify({ name, email }),
-      });
+      );
 
       if (!res.ok) throw new Error("Update failed");
       const updated = await res.json();

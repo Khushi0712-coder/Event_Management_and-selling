@@ -5,7 +5,7 @@ const AdminContacts = () => {
   const [contacts, setContacts] = useState([]);
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/contact", {
+    fetch("https://event-management-and-selling.onrender.com/api/contact", {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -15,12 +15,15 @@ const AdminContacts = () => {
   }, []);
 
   const markRead = async (id) => {
-    await fetch(`http://localhost:5000/api/contact/${id}/read`, {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${token}`,
+    await fetch(
+      `https://event-management-and-selling.onrender.com/api/contact/${id}/read`,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       },
-    });
+    );
 
     setContacts((prev) =>
       prev.map((c) => (c._id === id ? { ...c, status: "Read" } : c)),

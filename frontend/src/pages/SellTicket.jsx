@@ -47,13 +47,16 @@ const SellTicket = () => {
     try {
       setLoading(true);
 
-      const res = await fetch("http://localhost:5000/api/sell-ticket", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
+      const res = await fetch(
+        "https://event-management-and-selling.onrender.com/api/sell-ticket",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
         },
-        body: formData,
-      });
+      );
 
       if (res.ok) {
         alert("Ticket submitted for review ✅");
