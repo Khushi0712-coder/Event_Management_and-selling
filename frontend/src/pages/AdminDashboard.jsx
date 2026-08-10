@@ -8,29 +8,29 @@ const AdminDashboard = () => {
   useEffect(() => {
     // SELL TICKETS
     fetch(
-      "https://event-management-and-selling.onrender.com/api/admin/sell-tickets",
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      },
-    )
-      .then((res) => res.json())
-      .then(setTickets)
-      .catch(console.error);
+  `${import.meta.env.VITE_API_URL}/api/admin/sell-tickets`,
+  {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  }
+)
+  .then((res) => res.json())
+  .then(setTickets)
+  .catch(console.error);
 
     // CONTACT MESSAGES
     fetch(
-      "https://event-management-and-selling.onrender.com/api/contact/admin",
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      },
-    )
-      .then((res) => res.json())
-      .then(setContacts)
-      .catch(console.error);
+  `${import.meta.env.VITE_API_URL}/api/contact/admin`,
+  {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  }
+)
+  .then((res) => res.json())
+  .then(setContacts)
+  .catch(console.error);
   }, [token]);
 
   return (

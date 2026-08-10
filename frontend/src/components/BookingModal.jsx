@@ -11,23 +11,21 @@ const BookingModal = ({ event, onClose }) => {
     }
 
     try {
-      const res = await fetch(
-        "https://event-management-and-selling.onrender.com/api/bookings",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            eventName: event.title,
-            eventDate: event.date,
-            location: event.location,
-            ticketCount: count,
-            totalPrice: count * event.price,
-          }),
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/bookings`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-      );
+        body: JSON.stringify({
+          event: event._id || event.id || null,
+          eventName: event.title,
+          eventDate: event.date,
+          location: event.location,
+          ticketCount: count,
+          totalPrice: count * (event.price || 0),
+        }),
+      });
 
       const data = await res.json(); // 🔥 capture backend message
 

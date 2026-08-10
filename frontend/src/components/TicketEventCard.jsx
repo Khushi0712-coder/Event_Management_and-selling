@@ -1,23 +1,34 @@
+import { FiCalendar, FiMapPin } from "react-icons/fi";
+
+const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+const getImageUrl = (image) => {
+  if (!image) return "";
+  if (image.startsWith("http://") || image.startsWith("https://")) return image;
+  if (image.startsWith("/uploads/")) return `${API}${image}`;
+  // If a plain filename is stored (e.g. '1785873047054.jfif'), serve from backend uploads
+  return `${API.replace(/\/$/, "")}/uploads/${image}`;
+};
+
 const TicketEventCard = ({ event, onBook }) => {
   return (
-    <div className="bg-zinc-900 rounded-xl overflow-hidden hover:scale-[1.02] transition">
-      <img
-        src={event.image}
-        alt={event.title}
-        className="h-56 w-full object-cover"
-      />
+    <div className="overflow-hidden rounded-2xl border border-white/10 bg-zinc-900 shadow-2xl shadow-black/20 transition hover:scale-[1.02]">
+      <img src={getImageUrl(event.image)} alt={event.title} className="h-56 w-full object-cover" />
 
       <div className="p-5">
-        <h3 className="text-xl font-semibold">{event.title}</h3>
-        <p className="text-gray-400 text-sm">
-          📅 {event.date} • 📍 {event.location}
+        <h3 className="text-xl font-semibold text-white">{event.title}</h3>
+        <p className="mt-2 flex items-center gap-2 text-sm text-gray-400">
+          <FiCalendar className="text-orange-400" /> {event.date}
+        </p>
+        <p className="mt-1 flex items-center gap-2 text-sm text-gray-400">
+          <FiMapPin className="text-orange-400" /> {event.location}
         </p>
 
-        <div className="flex justify-between items-center mt-4">
-          <span className="text-orange-500 font-bold">₹ {event.price}</span>
+        <div className="mt-4 flex items-center justify-between">
+          <span className="font-bold text-orange-500">₹ {event.price || 0}</span>
           <button
             onClick={() => onBook(event)}
-            className="bg-orange-500 text-black px-4 py-2 rounded hover:bg-orange-600"
+            className="rounded bg-orange-500 px-4 py-2 text-sm font-medium text-black transition hover:bg-orange-600"
           >
             Book Ticket
           </button>

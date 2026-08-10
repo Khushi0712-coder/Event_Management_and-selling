@@ -87,13 +87,15 @@ const Signup = () => {
       setLoading(true);
 
       const res = await fetch(
-        "https://event-management-and-selling.onrender.com/api/auth/signup",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, email, password }),
-        },
-      );
+  `${import.meta.env.VITE_API_URL}/api/auth/signup`,
+  {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ name, email, password }),
+  }
+);
 
       const data = await res.json();
 
@@ -103,7 +105,11 @@ const Signup = () => {
       }
 
       // ✅ OPTIONAL: auto-login after signup
-      localStorage.setItem("token", data.token);
+      if (data?.token) {
+        localStorage.setItem("token", data.token);
+      } else if (data?.accessToken) {
+        localStorage.setItem("token", data.accessToken);
+      }
 
       alert("Signup successful ✅");
 

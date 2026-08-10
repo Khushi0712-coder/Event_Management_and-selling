@@ -1,4 +1,6 @@
 import express from "express";
+import path from "path";
+import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 import cors from "cors";
 import connectDB from "./config/db.js";
@@ -8,10 +10,21 @@ import bookingRoutes from "./routes/bookingRoutes.js";
 import sellTicketRoutes from "./routes/sellTicketRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
+import adminEventRoutes from "./routes/adminEventRoutes.js";
+import publicEventRoutes from "./routes/publicEventRoutes.js";
 
 import contactRoutes from "./routes/contactRoutes.js";
+import adminBookingRoutes from "./routes/adminBookingRoutes.js";
 
-dotenv.config();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+dotenv.config({ path: path.resolve(__dirname, ".env") });
+
+if (!process.env.JWT_SECRET) {
+  process.env.JWT_SECRET = "mysecretkey123";
+}
+
 connectDB();
 
 const app = express();
@@ -29,6 +42,9 @@ app.use("/api/bookings", bookingRoutes);
 app.use("/api/sell-ticket", sellTicketRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/admin/events", adminEventRoutes);
+app.use("/api/admin/bookings", adminBookingRoutes);
+app.use("/api/events", publicEventRoutes);
 app.use("/uploads", express.static("uploads"));
 
 app.use("/api/contact", contactRoutes);

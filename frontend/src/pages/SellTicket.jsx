@@ -1,79 +1,120 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import axios from "axios";
+import PremiumUpload from "../components/PremiumUpload";
+
+const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+const formatDate = (value) => {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+};
+
+const formatCurrency = (value) =>
+  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(
+    Number(value || 0),
+  );
 
 const SellTicket = () => {
-  const [eventName, setEventName] = useState("");
+  const [profile, setProfile] = useState(null);
+  const [bookings, setBookings] = useState([]);
+  const [selectedBookingId, setSelectedBookingId] = useState("");
+  const [phone, setPhone] = useState("");
   const [location, setLocation] = useState("");
-  const [eventDate, setEventDate] = useState("");
-  const [originalPrice, setOriginalPrice] = useState("");
   const [expectedPrice, setExpectedPrice] = useState("");
   const [reason, setReason] = useState("");
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState(null);
 
-  const submitTicket = async () => {
-    const token = localStorage.getItem("token");
+  const token = localStorage.getItem("token");
 
-    if (!token) {
-      alert("Please login first");
-      return;
+  const showToast = (message, type = "info") => {
+    setToast({ message, type });
+    window.setTimeout(() => setToast(null), 3000);
+  };
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!token) return;
+      try {
+        const res = await axios.get(`${API}/api/users/profile`, { headers: { Authorization: `Bearer ${token}` } });
+        setProfile(res.data);
+      } catch (err) {
+        // ignore
+      }
+    };
+
+    const fetchBookings = async () => {
+      if (!token) return;
+      try {
+        const res = await axios.get(`${API}/api/bookings/my`, { headers: { Authorization: `Bearer ${token}` } });
+        setBookings(Array.isArray(res.data) ? res.data : []);
+      } catch (err) {
+        setBookings([]);
+      }
+    };
+
+    fetchProfile();
+    fetchBookings();
+  }, [token]);
+
+  const selectedBooking = useMemo(() => bookings.find((b) => String(b._id) === String(selectedBookingId)), [bookings, selectedBookingId]);
+
+  useEffect(() => {
+    if (selectedBooking) {
+      setLocation(selectedBooking.location || "");
     }
+  }, [selectedBooking]);
 
-    if (
-      !eventName ||
-      !location ||
-      !eventDate ||
-      !originalPrice ||
-      !expectedPrice ||
-      !file
-    ) {
-      alert("Please fill all required fields");
-      return;
-    }
+  const originalPrice = useMemo(() => {
+    if (!selectedBooking) return "";
+    const count = selectedBooking.ticketCount || selectedBooking.tickets || 1;
+    const total = selectedBooking.totalPrice || selectedBooking.totalAmount || 0;
+    const per = count ? Math.round(Number(total) / Number(count)) : 0;
+    return per || "";
+  }, [selectedBooking]);
 
-    if (Number(expectedPrice) >= Number(originalPrice)) {
-      alert("Expected price must be lower than original price");
-      return;
-    }
+  const handleSubmit = async () => {
+    if (!token) return showToast("Please login first", "error");
+
+    // Validation
+    if (!selectedBookingId) return showToast("Please choose an event", "error");
+    if (!phone) return showToast("Phone number is required", "error");
+    if (!expectedPrice) return showToast("Expected selling price is required", "error");
+    if (!file) return showToast("Please upload ticket proof", "error");
+    if (Number(expectedPrice) >= Number(originalPrice)) return showToast("Expected price must be lower than original price", "error");
 
     const formData = new FormData();
-    formData.append("eventName", eventName);
-    formData.append("location", location);
-    formData.append("eventDate", eventDate);
+    formData.append("eventName", selectedBooking.event?.title || selectedBooking.eventName || "");
+    formData.append("location", location || selectedBooking.location || "");
+    formData.append("eventDate", selectedBooking.event?.date || selectedBooking.eventDate || "");
     formData.append("originalPrice", originalPrice);
     formData.append("expectedPrice", expectedPrice);
-    formData.append("reason", reason);
+    formData.append("reason", reason || "");
     formData.append("proof", file);
 
     try {
       setLoading(true);
+      const res = await axios.post(`${API}/api/sell-ticket`, formData, {
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" },
+      });
 
-      const res = await fetch(
-        "https://event-management-and-selling.onrender.com/api/sell-ticket",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          body: formData,
-        },
-      );
-
-      if (res.ok) {
-        alert("Ticket submitted for review ✅");
-
-        // Reset form
-        setEventName("");
+      if (res.status === 201) {
+        showToast("Ticket submitted for review", "success");
+        // reset
+        setSelectedBookingId("");
+        setPhone("");
         setLocation("");
-        setEventDate("");
-        setOriginalPrice("");
         setExpectedPrice("");
         setReason("");
         setFile(null);
       } else {
-        alert("Submission failed ❌");
+        showToast("Submission failed", "error");
       }
     } catch (err) {
-      alert("Server error ❌");
+      showToast(err?.response?.data?.message || "Server error", "error");
     } finally {
       setLoading(false);
     }
@@ -81,110 +122,107 @@ const SellTicket = () => {
 
   return (
     <div className="page pt-20 px-4 flex justify-center">
-      <div className="w-full max-w-lg">
-        {/* Heading */}
-        <h1 className="text-4xl font-bold text-center mb-3">
-          Sell Your <span className="text-orange-500">Tickets</span>
-        </h1>
+      <div className="w-full max-w-3xl">
+        {toast && (
+          <div className={`fixed right-4 top-6 z-50 rounded-lg px-4 py-2 text-sm ${toast.type === "success" ? "bg-emerald-500/10 border border-emerald-400/20 text-emerald-200" : "bg-rose-500/10 border border-rose-400/20 text-rose-200"}`}>
+            {toast.message}
+          </div>
+        )}
 
-        <p className="text-gray-400 text-center mb-10 text-sm">
-          Can’t attend an event? Sell your ticket to us at a fair price and get
-          quick confirmation.
-        </p>
+        <header className="mb-6 text-center">
+          <h1 className="text-3xl font-semibold text-white">Sell Your Tickets</h1>
+          <p className="mt-2 text-sm text-slate-400">Select an event you booked and submit a ticket resale request.</p>
+        </header>
 
-        {/* Card */}
-        <div className="relative bg-zinc-900/80 backdrop-blur-xl rounded-2xl p-8 shadow-2xl border border-white/5">
-          <div className="absolute -inset-1 bg-orange-500/10 blur-2xl rounded-2xl"></div>
-
-          <div className="relative space-y-5">
-            <input
-              type="text"
-              placeholder="Event Name"
-              value={eventName}
-              onChange={(e) => setEventName(e.target.value)}
-              className="w-full p-3 bg-black/60 rounded-lg outline-none focus:ring-2 focus:ring-orange-500"
-            />
-
-            <input
-              type="text"
-              placeholder="Event Location"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              className="w-full p-3 bg-black/60 rounded-lg outline-none focus:ring-2 focus:ring-orange-500"
-            />
-
-            <input
-              type="date"
-              value={eventDate}
-              onChange={(e) => setEventDate(e.target.value)}
-              className="w-full p-3 bg-black/60 rounded-lg outline-none focus:ring-2 focus:ring-orange-500"
-            />
-
-            <div className="grid grid-cols-2 gap-4">
-              <input
-                type="number"
-                placeholder="Original Price (₹)"
-                value={originalPrice}
-                onChange={(e) => setOriginalPrice(e.target.value)}
-                className="w-full p-3 bg-black/60 rounded-lg outline-none focus:ring-2 focus:ring-orange-500"
-              />
-
-              <input
-                type="number"
-                placeholder="Expected Price (₹)"
-                value={expectedPrice}
-                onChange={(e) => setExpectedPrice(e.target.value)}
-                className="w-full p-3 bg-black/60 rounded-lg outline-none focus:ring-2 focus:ring-orange-500"
-              />
-            </div>
-
-            {/* Upload Ticket Proof */}
-            <label className="block">
-              <span className="text-sm text-gray-400 mb-2 block">
-                Upload Ticket Proof (PDF / Image)
-              </span>
-
-              <div className="flex items-center justify-between gap-4 bg-black/60 p-3 rounded-lg border border-dashed border-gray-600 hover:border-orange-500 transition cursor-pointer">
-                <span className="text-sm text-gray-400 truncate">
-                  {file ? file.name : "Click to upload ticket proof"}
-                </span>
-
-                <span className="text-xs bg-orange-500 text-black px-3 py-1 rounded">
-                  Browse
-                </span>
-
-                <input
-                  type="file"
-                  accept=".pdf,image/*"
-                  onChange={(e) => setFile(e.target.files[0])}
-                  className="hidden"
-                />
+        <div className="rounded-2xl bg-slate-900/70 border border-white/10 p-6 shadow-[0_20px_60px_rgba(0,0,0,0.6)]">
+          <div className="space-y-6">
+            {/* Section 1: Seller Info */}
+            <section className="rounded-xl border border-white/6 bg-slate-950/50 p-4">
+              <h3 className="text-sm font-medium text-slate-300">Seller Information</h3>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="text-xs text-slate-400">Full name</label>
+                  <input readOnly value={profile?.name || ""} className="mt-1 w-full rounded-lg bg-slate-900/60 px-3 py-2 text-white outline-none" />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400">Email</label>
+                  <input readOnly value={profile?.email || ""} className="mt-1 w-full rounded-lg bg-slate-900/60 px-3 py-2 text-white outline-none" />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400">Phone</label>
+                  <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Your phone number" className="mt-1 w-full rounded-lg bg-slate-900/60 px-3 py-2 text-white outline-none" />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400">City / Location</label>
+                  <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="City or location" className="mt-1 w-full rounded-lg bg-slate-900/60 px-3 py-2 text-white outline-none" />
+                </div>
               </div>
-            </label>
+            </section>
 
-            <textarea
-              placeholder="Reason for selling (optional)"
-              rows="3"
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              className="w-full p-3 bg-black/60 rounded-lg outline-none focus:ring-2 focus:ring-orange-500 resize-none"
-            ></textarea>
+            {/* Section 2: Ticket Info */}
+            <section className="rounded-xl border border-white/6 bg-slate-950/50 p-4">
+              <h3 className="text-sm font-medium text-slate-300">Ticket Information</h3>
+              <div className="mt-3 space-y-3">
+                <label className="text-xs text-slate-400">Event (booked events only)</label>
+                <select value={selectedBookingId} onChange={(e) => setSelectedBookingId(e.target.value)} className="mt-1 w-full rounded-lg bg-slate-900/60 px-3 py-2 text-white outline-none">
+                  <option value="">Choose an event</option>
+                  {bookings.map((b) => (
+                    <option key={b._id} value={b._id}>
+                      {b.event?.title || b.eventName} — {formatDate(b.event?.date || b.eventDate)}
+                    </option>
+                  ))}
+                </select>
 
-            <button
-              onClick={submitTicket}
-              disabled={loading}
-              className="w-full mt-4 bg-orange-500 text-black py-3 rounded-lg font-semibold hover:bg-orange-600 transition disabled:opacity-60"
-            >
-              {loading ? "Submitting..." : "Submit Ticket for Review"}
-            </button>
+                {selectedBooking && (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <label className="text-xs text-slate-400">Event Name</label>
+                      <div className="mt-1 text-white">{selectedBooking.event?.title || selectedBooking.eventName}</div>
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-400">Purchase Date</label>
+                      <div className="mt-1 text-white">{formatDate(selectedBooking.event?.date || selectedBooking.eventDate)}</div>
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-400">Ticket Quantity</label>
+                      <div className="mt-1 text-white">{selectedBooking.ticketCount || selectedBooking.tickets}</div>
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-400">Original Ticket Price</label>
+                      <div className="mt-1 text-white">{formatCurrency(originalPrice)}</div>
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <label className="text-xs text-slate-400">Expected Selling Price</label>
+                  <input value={expectedPrice} onChange={(e) => setExpectedPrice(e.target.value)} type="number" placeholder="Enter expected price" className="mt-1 w-full rounded-lg bg-slate-900/60 px-3 py-2 text-white outline-none" />
+                </div>
+
+                <div>
+                  <label className="text-xs text-slate-400">Reason for Selling</label>
+                  <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3} className="mt-1 w-full rounded-lg bg-slate-900/60 px-3 py-2 text-white outline-none" placeholder="Optional" />
+                </div>
+              </div>
+            </section>
+
+            {/* Section 3: Upload */}
+            <section className="rounded-xl border border-white/6 bg-slate-950/50 p-4">
+              <h3 className="text-sm font-medium text-slate-300">Ticket Proof</h3>
+              <div className="mt-3">
+                <PremiumUpload file={file} onChange={setFile} />
+              </div>
+            </section>
+
+            <div className="flex items-center justify-end gap-3">
+              <button onClick={handleSubmit} disabled={loading} className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-5 py-2 text-black font-semibold hover:bg-orange-600 disabled:opacity-60">
+                {loading ? "Submitting..." : "Submit Ticket for Review"}
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Trust note */}
-        <p className="text-xs text-gray-500 text-center mt-6">
-          Tickets are verified before approval. Uploaded files are securely
-          reviewed.
-        </p>
+        <p className="mt-4 text-xs text-slate-500 text-center">Tickets are verified before approval. Uploaded files are securely reviewed.</p>
       </div>
     </div>
   );

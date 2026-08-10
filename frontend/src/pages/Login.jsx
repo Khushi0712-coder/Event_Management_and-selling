@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { getTokenPayload, setToken } from "../services/auth";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -57,13 +58,18 @@ const Login = () => {
       setLoading(true);
 
       const res = await fetch(
-        "https://event-management-and-selling.onrender.com/api/auth/login",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
-        },
-      );
+  `${import.meta.env.VITE_API_URL}/api/auth/login`,
+  {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      email,
+      password,
+    }),
+  }
+);
 
       const data = await res.json();
 
@@ -72,20 +78,22 @@ const Login = () => {
         return;
       }
 
-      // 🔥 SAVE TOKEN (THIS WAS MISSING)
-      localStorage.setItem("token", data.token);
+      const token = data?.token || data?.accessToken;
+      if (!token) {
+        alert("Login failed: no token returned");
+        return;
+      }
 
+      setToken(token);
       alert("Login Successful ✅");
 
-      // 🔁 Force reload so navbar updates
-      const payload = JSON.parse(atob(data.token.split(".")[1]));
-
-      if (payload.role === "admin") {
-        window.location.href = "/admin";
+      const payload = getTokenPayload(token);
+      if (payload?.role === "admin") {
+        navigate("/admin", { replace: true });
       } else {
-        window.location.href = "/events";
+        navigate("/events", { replace: true });
       }
-    } catch (err) {
+    } catch {
       alert("Server error ❌");
     } finally {
       setLoading(false);

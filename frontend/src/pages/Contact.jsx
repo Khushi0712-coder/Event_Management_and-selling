@@ -11,15 +11,15 @@ const Contact = () => {
     e.preventDefault();
 
     const res = await fetch(
-      "https://event-management-and-selling.onrender.com/api/contact",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(form),
-      },
-    );
+  `${import.meta.env.VITE_API_URL}/api/contact`,
+  {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(form),
+  }
+);
 
     if (res.ok) {
       alert("Message sent successfully ✅");

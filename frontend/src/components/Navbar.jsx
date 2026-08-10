@@ -1,25 +1,17 @@
 import { NavLink } from "react-router-dom";
 import { useEffect, useState } from "react";
 import MobileMenu from "./MobileMenu";
+import { getToken, getTokenPayload, isTokenExpired } from "../services/auth";
 
 const Navbar = () => {
   const [show, setShow] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const token = localStorage.getItem("token");
-
-  let role = null;
-  if (token) {
-    try {
-      role = JSON.parse(atob(token.split(".")[1])).role;
-    } catch {
-      role = null;
-    }
-  }
-
-  const isLoggedIn = !!token;
-  const isAdmin = role === "admin";
+  const token = getToken();
+  const payload = getTokenPayload(token);
+  const isLoggedIn = Boolean(token && !isTokenExpired(token));
+  const isAdmin = payload?.role === "admin" && isLoggedIn;
 
   useEffect(() => {
     const handleScroll = () => {
