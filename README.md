@@ -3,10 +3,10 @@
 A full-stack **Event Management and Ticket Selling platform** built using the **MERN stack**, featuring user authentication, event browsing, ticket reselling, admin approval workflows, and contact management.
 
 🔗 **Live Demo (Frontend):**
-https://event-management-and-selling.vercel.app
+
 
 🔗 **Backend API:**
-https://event-management-and-selling.onrender.com
+
 
 ---
 
@@ -109,7 +109,7 @@ event_management/
 
 ## 🙌 Author
 
-**Janvi Singh**  
+**Khushi**  
 Aspiring Full-Stack MERN Developer
 
 If you find this project helpful, don’t forget to ⭐ the repository!
